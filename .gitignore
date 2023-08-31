@@ -1,4 +1,3 @@
 node_modules
 CreateRelations.sql
 .env
-pg.js
