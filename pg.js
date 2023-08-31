@@ -3,11 +3,12 @@ const { Pool, Client } = require('pg');
 require('dotenv').config();
 
  
-
 const add_user_query = `INSERT INTO "Users" (usernames, passwords, user_id) VALUES('A User', 'A Password', 2)`;
 
 
-const authenticateUser = async () => {
+
+// Finished. Untested.
+const getTickerId = async (ticker) => {
   const client = new Client({
     user: process.env.User,
     host: process.env.Host,
@@ -17,7 +18,7 @@ const authenticateUser = async () => {
   })
   await client.connect();
   
-  const result = await client.query(`SELECT * FROM "Users" WHERE usernames = 'A User'`);
+  const result = await client.query("".concat(`SELECT * FROM "Stock" WHERE ticker = '`, ticker, "'"));
   
   await client.end();
   if (result.rowCount > 0) {
@@ -28,6 +29,27 @@ const authenticateUser = async () => {
 }
 
 
+// Finished. Untested.
+const authenticateUser = async (username, password) => {
+  const client = new Client({
+    user: process.env.User,
+    host: process.env.Host,
+    database: process.env.Database_2,
+    password: process.env.Password,
+    port: 5432,
+  })
+  await client.connect();
+  const result = await client.query("".concat(`SELECT * FROM "Users" WHERE u.usernames = '`, username, `' AND u.passwords = '`, password, "'"));
+  
+  await client.end();
+  if (result.rowCount > 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+// Finished. Untested.
 const retrievePortfolio = async (username, password) => {
   const client = new Client({
     user: process.env.User,
@@ -53,6 +75,7 @@ const retrievePortfolio = async (username, password) => {
 }
 
 
+// WIP. 
 const insertNewPosition = async (username, password, ticker, shares, cost, value) => {
   const client = new Client({
     user: process.env.User,
@@ -83,13 +106,39 @@ const updatePosition = async (username, password, ticker, shares, cost, value) =
 }
 
 
-const deletePosition = async (username, password, ticker, shares, cost, value) => {
 
+// Finished. Untested.
+const deletePosition = async (username, password, ticker) => {
+  const authenticated = authenticateUser(username, password);
+  if (authenticated) {
+    const client = new Client({
+        user: process.env.User,
+        host: process.env.Host,
+        database: process.env.Database_2,
+        password: process.env.Password,
+        port: 5432,
+    })
+    const ticker_id = getTickerId(ticker); 
+
+    await client.connect();
+    await client.query("".concat("DELETE FROM 'Position' WHERE stock_id = ", ticker_id));
+  }
 }
 
-const deleteProfile = async (username, password) => {
-  
 
+
+
+// Finished. Untested.
+const deleteProfile = async (username, password) => {
+    const client = new Client({
+    user: process.env.User,
+    host: process.env.Host,
+    database: process.env.Database_2,
+    password: process.env.Password,
+    port: 5432,
+  })
+  await client.connect();
+  await client.query("".concat("DELETE FROM 'Users' WHERE user_id = '", username, "' AND password = '", password, "'"));
 }
 
 
@@ -120,7 +169,7 @@ const getDate = async () => {
 }
 
 //retrievePortfolio('A User', 'A Password').then(result => console.log(result));
-module.exports = {authenticateUser, retrievePortfolio};
+module.exports = {authenticateUser, retrievePortfolio, deletePosition, deleteProfile};
 
 
                                   
