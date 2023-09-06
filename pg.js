@@ -15,6 +15,24 @@ const connectPg = async () => {
   return client;
 }
 
+// Returns the number of shares username as for ticker. 
+// WIP (response may need to be modified). Untested. 
+const getShare = async (username, ticker) => {
+  const connect = await connectPg();
+
+  const response = connect.query(
+    "".concat(
+      `SELECT p.shares_owned FROM "User" AS u 
+      JOIN "Position" AS p 
+      ON u.user_id = p.user_id
+      JOIN "Stock" AS s
+      ON p.stock_id = s.stock_id
+      WHERE u.username=`, username, ` AND s.ticker=`, ticker)
+  );
+
+  return response;
+}
+
 // Returns the internal stock id given ticker. 
 // Finished and Tested
 const getTickerId = async (ticker) => {
@@ -125,7 +143,6 @@ const createUser = async (username, password) => {
 
 
 
-// Checks to see if the ticker is already pres
 const insertNewPosition = async (username, password, ticker, shares, cost, value) => {
   const client = await connectPg();
   
@@ -143,16 +160,37 @@ const insertNewPosition = async (username, password, ticker, shares, cost, value
   }
 }
 
+
+const buyShare = async (username, password, ticker, shares, cost, value) => {
+
+}
+
+
+const SellShare = async (username, password, ticker, shares, cost, value) => {
+
+}
+
+
 // Given a pair of credentials and stock-related data, make the changes to the database if possible. 
 //  Return a true/false based on if the change was successful. 
 // WIP. Untested. 
 // Exported. 
-const updatePosition = async (username, password, ticker, shares, cost, value) => {
+const updatePosition = async (username, password, order, ticker, shares, cost, value) => {
   const authenticated = await authenticateUser(username, password);
   if (!authenticated)  {
     return false;
   }
+  const sharesOwned = await getShare(username, ticker);
 
+  if (order == "Sell" & shares > sharesOwned) {
+    return false;
+  } else if (order == "Buy" & sharesOwned == 0) {
+    return await insertNewPosition(username, password, ticker, shares, cost, value);
+  } else if (order == "Sell") {
+    return await sellShare(username, password, ticker, shares, cost, value);
+  } else if (order == "Buy") {
+    return await buyShare(username, password, ticker, shares, cost, value);
+  }
 }
 
 
