@@ -132,7 +132,7 @@ const retrievePortfolio = async (username, password) => {
 
 
 // Checks if a username already exists in the db. If it does, return false. Otherwise, create a new user profile with details.
-// Unfinished. 
+// Finished. Untested. 
 // Exported. 
 const createUser = async (username, password) => {
   const client = await connectPg();
@@ -151,7 +151,9 @@ const createUser = async (username, password) => {
 }
 
 
-
+// Inserts a new position into the user's db. 
+// Finished. Untested.
+// Used in updatePosition()
 const insertNewPosition = async (username, password, ticker, shares, cost, value) => {
   const client = await connectPg();
   
@@ -165,19 +167,56 @@ const insertNewPosition = async (username, password, ticker, shares, cost, value
     user_id, `, `, position_id,  `, `, ticker_id,  `, `, shares,  `, `, cost,  `, `, value,  `);`));
     
 
-  
+
   await client.end();
 }
 
 
+// Handles the purchase of shares. 
+// Finished. Untested.
+// Used in updatePosition()
 const buyShare = async (username, password, ticker, shares, cost, value) => {
+  const client = await connectPg();
 
+  const ticker_id = await getTickerId(ticker);
+  const user_id = await getUserId(username, password);
+  const current = await client.query("".concat(`SELECT  FROM "Position" WHERE user_id = `, user_id, ' AND stock_id = ', ticker_id));
+
+  let currentShare = current.rows[0].shares_owned + shares;
+  let currentCost = current.rows[0].total_cost + cost;
+  let currentValue = current.rows[0].total_value + value;
+
+  await client.query("".concat(
+    `UPDATE "Position"
+    SET shares_owned = `, currentShare, `, total_cost = `, currentCost, ', total_value = ', currentValue,
+    `WHERE user_id = `, user_id, `AND stock_id = `, ticker_id))
+
+  await client.end();
 }
 
 
+// Handles the sale of shares. 
+// Finished. Untested.
+// Used in updatePosition()
 const SellShare = async (username, password, ticker, shares, cost, value) => {
+  const client = await connectPg();
 
+  const ticker_id = await getTickerId(ticker);
+  const user_id = await getUserId(username, password);
+  const current = await client.query("".concat(`SELECT  FROM "Position" WHERE user_id = `, user_id, ' AND stock_id = ', ticker_id));
+
+  let currentShare = current.rows[0].shares_owned - shares;
+  let currentCost = current.rows[0].total_cost - cost;
+  let currentValue = current.rows[0].total_value - value;
+
+  await client.query("".concat(
+    `UPDATE "Position"
+    SET shares_owned = `, currentShare, `, total_cost = `, currentCost, ', total_value = ', currentValue,
+    `WHERE user_id = `, user_id, `AND stock_id = `, ticker_id))
+
+  await client.end();
 }
+
 
 
 // Given a pair of credentials and stock-related data, make the changes to the database if possible. 
