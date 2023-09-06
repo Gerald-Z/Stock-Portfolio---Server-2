@@ -2,10 +2,8 @@ const { Pool, Client } = require('pg');
  
 require('dotenv').config();
 
-
-// Returns the internal stock id given ticker. 
-// Finished and Tested
-const getTickerId = async (ticker) => {
+// Connect to the postgreSQL database using the credentials in .env.
+const connectPg = async () => {
   const client = new Client({
     user: process.env.User,
     host: process.env.Host,
@@ -14,6 +12,13 @@ const getTickerId = async (ticker) => {
     port: 5432,
   })
   await client.connect();
+  return client;
+}
+
+// Returns the internal stock id given ticker. 
+// Finished and Tested
+const getTickerId = async (ticker) => {
+  const client = await connectPg();
   
   const result = await client.query("".concat(`SELECT * FROM "Stock" WHERE ticker = '`, ticker, "'"));
   
@@ -24,14 +29,8 @@ const getTickerId = async (ticker) => {
 // Returns the internal user id given ticker. 
 // Finished and Untested
 const getUserId = async (username, password) => {
-  const client = new Client({
-    user: process.env.User,
-    host: process.env.Host,
-    database: process.env.Database_2,
-    password: process.env.Password,
-    port: 5432,
-  })
-  await client.connect();
+  const client = await connectPg();
+
   
   const result = await client.query("".concat(`SELECT * FROM "Users" WHERE usernames = '`, username, `' AND passwords = '`, password, "'"));
   
@@ -46,14 +45,7 @@ const getUserId = async (username, password) => {
 // Returns a new id that is generated from the maximum user_id of a table. 
 // Finished and Untested 
 const getNewUserId = async () => { 
-  const client = new Client({
-    user: process.env.User,
-    host: process.env.Host,
-    database: process.env.Database_2,
-    password: process.env.Password,
-    port: 5432,
-  })
-  await client.connect();
+  const client = await connectPg();
   let response = await client.query(`SELECT MAX(user_id) FROM "Users"`);
   response = parseInt(response);
   response += 1;
@@ -65,14 +57,8 @@ const getNewUserId = async () => {
 // Returns a new id that is generated from the maximum stock_id of a table. 
 // Finished and Untested 
 const getNewStockId = async () => { 
-  const client = new Client({
-    user: process.env.User,
-    host: process.env.Host,
-    database: process.env.Database_2,
-    password: process.env.Password,
-    port: 5432,
-  })
-  await client.connect();
+  const client = await connectPg();
+
   let response = await client.query(`SELECT MAX(stock_id) FROM "Stock"`);
   response = parseInt(response);
   response += 1;
@@ -86,14 +72,8 @@ const getNewStockId = async () => {
 // Finished. Untested.
 // Exported. 
 const authenticateUser = async (username, password) => {
-  const client = new Client({
-    user: process.env.User,
-    host: process.env.Host,
-    database: process.env.Database_2,
-    password: process.env.Password,
-    port: 5432,
-  })
-  await client.connect();
+  const client = await connectPg();
+
   const result = await client.query("".concat(`SELECT * FROM "Users" WHERE u.usernames = '`, username, `' AND u.passwords = '`, password, "'"));
   
   await client.end();
@@ -109,20 +89,11 @@ const authenticateUser = async (username, password) => {
 // Finished. Untested.
 // Exported. 
 const retrievePortfolio = async (username, password) => {
-  const client = new Client({
-    user: process.env.User,
-    host: process.env.Host,
-    database: process.env.Database_2,
-    password: process.env.Password,
-    port: 5432,
-  })
-  await client.connect();
-  
+  const client = await connectPg();
   const result = await client.query("".concat(`SELECT u.usernames, pos.shares_owned, pos.total_cost, pos.total_value FROM "Users" AS u
                                   JOIN "Position" AS pos
                                   ON u.user_id = pos.user_id
                                   WHERE u.usernames = '`, username, `' AND u.passwords = '`, password, "'"));
-  
   
   await client.end();
   if (result.rowCount > 0) {
@@ -137,14 +108,8 @@ const retrievePortfolio = async (username, password) => {
 // Unfinished. 
 // Exported. 
 const createUser = async (username, password) => {
-  const client = new Client({
-    user: process.env.User,
-    host: process.env.Host,
-    database: process.env.Database_2,
-    password: process.env.Password,
-    port: 5432,
-  })
-  await client.connect();
+  const client = await connectPg();
+
   const user_id = await getUserId(username, password);
   if (user_id != -1) {
     return false;
@@ -162,14 +127,7 @@ const createUser = async (username, password) => {
 
 // Checks to see if the ticker is already pres
 const insertNewPosition = async (username, password, ticker, shares, cost, value) => {
-  const client = new Client({
-    user: process.env.User,
-    host: process.env.Host,
-    database: process.env.Database_2,
-    password: process.env.Password,
-    port: 5432,
-  })
-  await client.connect();
+  const client = await connectPg();
   
   ticker_id = getTickerId(ticker);
   user_id = getUserId(username, password);
@@ -185,8 +143,15 @@ const insertNewPosition = async (username, password, ticker, shares, cost, value
   }
 }
 
-
+// Given a pair of credentials and stock-related data, make the changes to the database if possible. 
+//  Return a true/false based on if the change was successful. 
+// WIP. Untested. 
+// Exported. 
 const updatePosition = async (username, password, ticker, shares, cost, value) => {
+  const authenticated = await authenticateUser(username, password);
+  if (!authenticated)  {
+    return false;
+  }
 
 }
 
@@ -199,14 +164,7 @@ const updatePosition = async (username, password, ticker, shares, cost, value) =
 const deletePosition = async (username, password, ticker) => {
   const authenticated = authenticateUser(username, password);
   if (authenticated) {
-    const client = new Client({
-        user: process.env.User,
-        host: process.env.Host,
-        database: process.env.Database_2,
-        password: process.env.Password,
-        port: 5432,
-    })
-    const ticker_id = getTickerId(ticker); 
+    const client = await connectPg();
 
     await client.connect();
     await client.query("".concat("DELETE FROM 'Position' WHERE stock_id = ", ticker_id));
@@ -221,26 +179,16 @@ const deletePosition = async (username, password, ticker) => {
 const deleteProfile = async (username, password) => {
     const authenticated = authenticateUser(username, password);
     if (authenticated) {
-      const client = new Client({
-      user: process.env.User,
-      host: process.env.Host,
-      database: process.env.Database_2,
-      password: process.env.Password,
-      port: 5432,
-    })
-    await client.connect();
-    await client.query("".concat("DELETE FROM 'Position' WHERE user_id = '", username, "'"));
-    await client.query("".concat("DELETE FROM 'Users' WHERE user_id = '", username, "' AND password = '", password, "'"));
-    await client.end();
+      const client = await connectPg();
+
+      await client.query("".concat("DELETE FROM 'Position' WHERE user_id = '", username, "'"));
+      await client.query("".concat("DELETE FROM 'Users' WHERE user_id = '", username, "' AND password = '", password, "'"));
+      await client.end();
   }
 }
 
-
-
-
-
 //retrievePortfolio('A User', 'A Password').then(result => console.log(result));
-module.exports = {authenticateUser, retrievePortfolio, createUser, deletePosition, deleteProfile};
+module.exports = {authenticateUser, retrievePortfolio, createUser, updatePosition, deletePosition, deleteProfile};
 
 
                                   
