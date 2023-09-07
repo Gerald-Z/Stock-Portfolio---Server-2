@@ -1,4 +1,4 @@
-const {authenticateUser, retrievePortfolio, createUser, updatePosition, deletePosition, deleteProfile} = require('pg.js');
+const {authenticateUser, retrievePortfolio, createUser, updatePosition, deletePosition, deleteProfile} = require('./pg.js');
 
 
 const express = require('express');

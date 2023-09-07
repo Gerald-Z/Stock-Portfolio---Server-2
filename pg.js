@@ -15,7 +15,7 @@ const connectPg = async () => {
   return client;
 }
 
-// Returns the number of shares username as for ticker. 
+// Returns the number of shares username has for ticker. 
 // WIP (response may need to be modified). Untested. 
 const getShare = async (username, ticker) => {
   const connect = await connectPg();
@@ -286,4 +286,4 @@ const deleteProfile = async (username, password) => {
 module.exports = {authenticateUser, retrievePortfolio, createUser, updatePosition, deletePosition, deleteProfile};
 
 
-                                  
+                  
