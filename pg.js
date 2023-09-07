@@ -150,6 +150,18 @@ const createUser = async (username, password) => {
   }
 }
 
+const addStock = async (username, password, ticker, client) => {
+  const response = await client.query("".concat(
+    `SELECT * FROM "Stock" WHERE ticker = '`, ticker, "';"));
+
+    if (result.rowCount == 0) {
+      const stock_id = getNewStockId();
+      await client.query("".concat(
+        `INSERT INTO "Stock" (ticker, stock_id) VALUES (`, 
+        ticker, `, `, stock_id, `);`));    
+    }
+
+}
 
 // Inserts a new position into the user's db. 
 // Finished. Untested.
@@ -160,13 +172,11 @@ const insertNewPosition = async (username, password, ticker, shares, cost, value
   const ticker_id = await getTickerId(ticker);
   const user_id = await getUserId(username, password);
   const position_id = await getNewPositionId();
-
+  await addStock(username, password, ticker, client);
 
   await client.query("".concat(
     `INSERT INTO "Position" (user_id, position_id, stock_id, shares_owned, total_cost, total_value) VALUES (`, 
     user_id, `, `, position_id,  `, `, ticker_id,  `, `, shares,  `, `, cost,  `, `, value,  `);`));
-    
-
 
   await client.end();
 }
