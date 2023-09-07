@@ -243,8 +243,6 @@ const updatePosition = async (username, password, order, ticker, shares, cost, v
 }
 
 
-
-
 // Deletes from the user's portfolio the position with the provided ticker. 
 // Finished. Untested.
 // Exported.
