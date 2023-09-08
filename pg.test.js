@@ -8,6 +8,7 @@ test('Required the number of shares the investor has for ticker', () => {
 
 */
 
+
 describe('The Authentication Process is done correctly', () => {
     it('Authenticates the right credentials', async () => {
         authenticateUser("A User", "A Password").then(result => expect(result).toBe(true));
@@ -31,3 +32,13 @@ describe('The Portfolio Read Process is done correctly', () => {
     });
 })
 
+
+describe('The User Creation Process is done correctly', () => {
+    it('A new user can be created if the username is not already used', () => {
+        createUser("User_2", "Password_2").then(result => expect(result).toBe(true));
+        deleteProfile("User_2", "Password_2");
+    });
+    it('A new user cannot be created because the username is already used', () => {
+        createUser("A User", "A Password").then(result => expect(result).toBe(false));
+    });
+})

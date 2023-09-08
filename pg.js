@@ -45,16 +45,16 @@ const getTickerId = async (ticker) => {
 }
 
 // Returns the internal user id given ticker. 
-// Finished and Untested
+// Finished and Tested
 const getUserId = async (username, password) => {
   const client = await connectPg();
 
   
   const result = await client.query("".concat(`SELECT * FROM "Users" WHERE usernames = '`, username, `' AND passwords = '`, password, "'"));
-  
+  //console.log("The result is", result);
   await client.end();
   if (result.rowCount > 0) {
-    return result.rows[0].user_id;;
+    return result.rows[0].user_id;
   } else {
     return -1;
   }
@@ -62,14 +62,14 @@ const getUserId = async (username, password) => {
 
 
 // Returns a new id that is generated from the maximum user_id of a table. 
-// Finished and Untested 
+// Finished and Tested 
 const getNewUserId = async () => { 
   const client = await connectPg();
   let response = await client.query(`SELECT MAX(user_id) FROM "Users"`);
-  response = parseInt(response);
-  response += 1;
+  let max = response.rows[0].max;
+  max += 1;
   await client.end();
-  return response;
+  return max;
 }
 
 
@@ -79,24 +79,24 @@ const getNewStockId = async () => {
   const client = await connectPg();
 
   let response = await client.query(`SELECT MAX(stock_id) FROM "Stock"`);
-  response = parseInt(response);
-  response += 1;
+  let max = response.rows[0].max;
+  max += 1;
   await client.end();
-  return response;
+  return max;
 }
 
 const getNewPositionId = async () => { 
   const client = await connectPg();
   let response = await client.query(`SELECT MAX(position_id) FROM "Position"`);
-  response = parseInt(response);
-  response += 1;
+  let max = response.rows[0].max;
+  max += 1;
   await client.end();
-  return response;
+  return max;
 }
 
 
 // Checks if the username and the password match to a user already in the database.
-// Finished. Untested.
+// Finished. Tested.
 // Exported. 
 const authenticateUser = async (username, password) => {
   const client = await connectPg();
@@ -114,7 +114,7 @@ const authenticateUser = async (username, password) => {
 
 
 // Checks if the username and the password match to a user already in the database. If so, return the portfolio. If not, returns 0.
-// Finished. Untested.
+// Finished. Tested.
 // Exported. 
 const retrievePortfolio = async (username, password) => {
   const client = await connectPg();
@@ -133,20 +133,21 @@ const retrievePortfolio = async (username, password) => {
 
 
 // Checks if a username already exists in the db. If it does, return false. Otherwise, create a new user profile with details.
-// Finished. Untested. 
+// Finished. Tested. 
 // Exported. 
 const createUser = async (username, password) => {
+    
   const client = await connectPg();
 
   const user_id = await getUserId(username, password);
   if (user_id != -1) {
+    await client.end();
     return false;
   } else {
-    const newId = getNewUserId();
-
-    await client.query("".concat(`INSERT INTO "Users" (user_id, username, password) 
-                        VALUES(`, newId, `, `, username, `, `, password, `)`));
-
+    const newId = await getNewUserId();
+    await client.query("".concat(`INSERT INTO "Users" (user_id, usernames, passwords) 
+                        VALUES(`, newId, `, '`, username, `', '`, password, `')`));
+    await client.end();
     return true;
   }
 }
@@ -276,9 +277,10 @@ const deleteProfile = async (username, password) => {
     const authenticated = authenticateUser(username, password);
     if (authenticated) {
       const client = await connectPg();
+      const id = await getUserId(username, password);
 
-      await client.query("".concat("DELETE FROM 'Position' WHERE user_id = '", username, "'"));
-      await client.query("".concat("DELETE FROM 'Users' WHERE user_id = '", username, "' AND password = '", password, "'"));
+      await client.query("".concat(`DELETE FROM "Position" WHERE user_id = `, id));
+      await client.query("".concat(`DELETE FROM "Users" WHERE user_id = `, id, ` AND passwords = '`, password, `'`));
       await client.end();
   }
 }
