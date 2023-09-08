@@ -101,9 +101,10 @@ const getNewPositionId = async () => {
 const authenticateUser = async (username, password) => {
   const client = await connectPg();
 
-  const result = await client.query("".concat(`SELECT * FROM "Users" WHERE u.usernames = '`, username, `' AND u.passwords = '`, password, "'"));
+  const result = await client.query("".concat(`SELECT * FROM "Users" AS u WHERE u.usernames = '`, username, `' AND u.passwords = '`, password, "'"));
   
   await client.end();
+ // await console.log(result);
   if (result.rowCount > 0) {
     return true;
   } else {
@@ -124,9 +125,9 @@ const retrievePortfolio = async (username, password) => {
   
   await client.end();
   if (result.rowCount > 0) {
-    return result;
+    return result.rows;
   } else {
-    return 0;
+    return false;
   }
 }
 
