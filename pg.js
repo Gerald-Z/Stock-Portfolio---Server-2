@@ -20,38 +20,51 @@ const connectPg = async () => {
 const getShare = async (username, ticker) => {
   const connect = await connectPg();
 
-  const response = connect.query(
+  const response = await connect.query(
     "".concat(
-      `SELECT p.shares_owned FROM "User" AS u 
+      `SELECT p.shares_owned FROM "Users" AS u 
       JOIN "Position" AS p 
       ON u.user_id = p.user_id
       JOIN "Stock" AS s
       ON p.stock_id = s.stock_id
-      WHERE u.username=`, username, ` AND s.ticker=`, ticker)
+      WHERE u.usernames= '`, username, `' AND s.ticker= '`, ticker, "'")
   );
-
-  return response;
+  await connect.end();
+ // console.log("Response: ", response);
+  if (response.rowCount > 0) {
+    return response.rows[0].shares_owned;
+  } else {
+    return 0;
+  }
 }
+
 
 // Returns the internal stock id given ticker. 
 // Finished and Tested
 const getTickerId = async (ticker) => {
   const client = await connectPg();
-  
+//  console.log(ticker);
   const result = await client.query("".concat(`SELECT * FROM "Stock" WHERE ticker = '`, ticker, "'"));
+  //console.log("The row count is: ", result.rowCount);
   
   await client.end();
-  return result.rows[0].stock_id;
+  //console.log(result);
+
+  if (result.rowCount > 0) {
+    return result.rows[0].stock_id;
+  } else {
+    const new_id = await addStock(ticker);
+    return new_id;
+  }
 }
 
 // Returns the internal user id given ticker. 
 // Finished and Tested
 const getUserId = async (username, password) => {
+ // console.log("Username is", username);
   const client = await connectPg();
-
-  
   const result = await client.query("".concat(`SELECT * FROM "Users" WHERE usernames = '`, username, `' AND passwords = '`, password, "'"));
-  //console.log("The result is", result);
+ // console.log("The result of the search for", username," is", result);
   await client.end();
   if (result.rowCount > 0) {
     return result.rows[0].user_id;
@@ -152,16 +165,15 @@ const createUser = async (username, password) => {
   }
 }
 
-const addStock = async (username, password, ticker, client) => {
-  const response = await client.query("".concat(
-    `SELECT * FROM "Stock" WHERE ticker = '`, ticker, "';"));
-
-    if (result.rowCount == 0) {
-      const stock_id = getNewStockId();
-      await client.query("".concat(
-        `INSERT INTO "Stock" (ticker, stock_id) VALUES (`, 
-        ticker, `, `, stock_id, `);`));    
-    }
+const addStock = async (ticker) => {
+  const client = await connectPg();
+  const new_id = await getNewStockId();
+  await client.query("".concat(
+    `INSERT INTO "Stock" (ticker, stock_id) VALUES ('`, ticker, `', `, new_id, `);`
+    )
+  );
+  await client.end();
+  return new_id;
 
 }
 
@@ -169,18 +181,25 @@ const addStock = async (username, password, ticker, client) => {
 // Finished. Untested.
 // Used in updatePosition()
 const insertNewPosition = async (username, password, ticker, shares, cost, value) => {
+  //console.log("Insert position called");
   const client = await connectPg();
   
   const ticker_id = await getTickerId(ticker);
+ // console.log("Ticker_id: ", ticker_id);
   const user_id = await getUserId(username, password);
   const position_id = await getNewPositionId();
-  await addStock(username, password, ticker, client);
+//  await addStock(username, password, ticker, client);
 
-  await client.query("".concat(
+  const res = await client.query("".concat(
     `INSERT INTO "Position" (user_id, position_id, stock_id, shares_owned, total_cost, total_value) VALUES (`, 
     user_id, `, `, position_id,  `, `, ticker_id,  `, `, shares,  `, `, cost,  `, `, value,  `);`));
-
+ // console.log("Insert result:", res);
   await client.end();
+  if (res.rowCount > 0) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 
@@ -241,17 +260,20 @@ const updatePosition = async (username, password, order, ticker, shares, cost, v
     return false;
   }
   const sharesOwned = await getShare(username, ticker);
-
+  //console.log("Shares owned:", sharesOwned);
   if (order == "Sell" & shares > sharesOwned) {
     return false;
   } else if (order == "Buy" & sharesOwned == 0) {
-    await insertNewPosition(username, password, ticker, shares, cost, value);
+    const success = await insertNewPosition(username, password, ticker, shares, cost, value);
+    return success;
   } else if (order == "Sell") {
     await sellShare(username, password, ticker, shares, cost, value);
+    return true;
   } else if (order == "Buy") {
     await buyShare(username, password, ticker, shares, cost, value);
+    return true;
   }
-  return true; 
+ // return true; 
 }
 
 
@@ -259,28 +281,33 @@ const updatePosition = async (username, password, order, ticker, shares, cost, v
 // Finished. Untested.
 // Exported.
 const deletePosition = async (username, password, ticker) => {
-  const authenticated = authenticateUser(username, password);
+  const authenticated = await authenticateUser(username, password);
   if (authenticated) {
+    const deleteId = await getTickerId(ticker);
+    const userId = await getUserId(username, password);
     const client = await connectPg();
-
-    await client.connect();
-    await client.query("".concat("DELETE FROM 'Position' WHERE stock_id = ", ticker_id));
+    //console.log("DeleteId: ", deleteId, "userId: ", userId);
+    await client.query("".concat(`DELETE FROM "Position" WHERE stock_id = `, deleteId, " AND user_id = ", userId));
     await client.end();
+    return true;
+  } else {
+    return false;
   }
 }
 
 
 // Deletes from the database the profile of the user and all associated data. 
-// Finished. Untested.
+// Finished. Tested.
 // Exported.
 const deleteProfile = async (username, password) => {
     const authenticated = authenticateUser(username, password);
     if (authenticated) {
-      const client = await connectPg();
       const id = await getUserId(username, password);
-
-      await client.query("".concat(`DELETE FROM "Position" WHERE user_id = `, id));
-      await client.query("".concat(`DELETE FROM "Users" WHERE user_id = `, id, ` AND passwords = '`, password, `'`));
+      const client = await connectPg();
+   //   console.log("ID is", id);
+      const none = await client.query("".concat(`DELETE FROM "Position" WHERE user_id = `, id));
+      const one  = await client.query("".concat(`DELETE FROM "Users" WHERE user_id = `, id));
+  //    console.log(none);
       await client.end();
   }
 }

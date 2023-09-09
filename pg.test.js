@@ -20,6 +20,7 @@ describe('The Authentication Process is done correctly', () => {
 
 
 
+
 describe('The Portfolio Read Process is done correctly', () => {
     it('Provides the portfolio for the correct credentials', () => {
         retrievePortfolio("A User", "A Password").then(result => expect(result).not.toBe(false));
@@ -33,12 +34,23 @@ describe('The Portfolio Read Process is done correctly', () => {
 })
 
 
-describe('The User Creation Process is done correctly', () => {
-    it('A new user can be created if the username is not already used', () => {
-        createUser("User_2", "Password_2").then(result => expect(result).toBe(true));
-        deleteProfile("User_2", "Password_2");
+describe('The user Creation and Deletion processes work correctly', () => {
+    it('A new user can be created if the username is not already used', async () => {
+        await createUser("User_2", "Password_2").then(result => expect(result).toBe(true));
+        await deleteProfile("User_2", "Password_2");
     });
     it('A new user cannot be created because the username is already used', () => {
         createUser("A User", "A Password").then(result => expect(result).toBe(false));
     });
 })
+
+
+
+describe('The Insert and Delete position processes work correctly', () => {
+    it(`Inserting a new position works correctly`, async () => {
+        await updatePosition("A User", "A Password", "Buy", "Ticker_Example", 10, 100, 100).then(result => expect(result).toBe(true));
+        await deletePosition("A User", "A Password", "Ticker_Example").then(result => expect(result).toBe(true));;
+    });
+
+})
+

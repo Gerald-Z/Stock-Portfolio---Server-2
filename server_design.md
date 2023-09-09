@@ -4,11 +4,11 @@ After that, the server.js file will use functions exported from pg.js to manipul
 The pg.js must export functions for the following purposes:
 
 Create:
-    Create a new user profile based on the username and password provided by the API call - createUser(username, password)
+    Create a new user profile based on the username and password provided by the API call - createUser(username, password) - Tested
 
 Read:
-    Given a pair of credentials, return if they are valid or not - authenticateUser(username, password)
-    Given a pair of credentials, either return the correct portfolio if the credentials are correct or return a message if they are false - retrievePortfolio(username, password)
+    Given a pair of credentials, return if they are valid or not - authenticateUser(username, password) - Tested 
+    Given a pair of credentials, either return the correct portfolio if the credentials are correct or return a message if they are false - retrievePortfolio(username, password) - Tested
 
 
 Update:
@@ -23,6 +23,6 @@ Update:
 
 
 Delete:
-    Delete a user profile - deleteProfile(username, password)
-    Delete a stock position - deletePosition(username, password, ticker)
+    Delete a user profile - deleteProfile(username, password) - Tested
+    Delete a stock position - deletePosition(username, password, ticker) - 
 
