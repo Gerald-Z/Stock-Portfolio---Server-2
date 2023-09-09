@@ -1,13 +1,6 @@
 const {authenticateUser, retrievePortfolio, createUser, updatePosition, deletePosition, deleteProfile, deleteTicker} = require('./pg.js');
 
 
-/*
-test('Required the number of shares the investor has for ticker', () => {
-    expect(getShare("Investor", "GS")).toBe(1);
-});
-
-*/
-
 
 describe('The Authentication Process is done correctly', () => {
     it('Authenticates the right credentials', async () => {
