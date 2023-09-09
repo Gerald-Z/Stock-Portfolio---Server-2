@@ -1,4 +1,4 @@
-const {authenticateUser, retrievePortfolio, createUser, updatePosition, deletePosition, deleteProfile} = require('./pg.js');
+const {authenticateUser, retrievePortfolio, createUser, updatePosition, deletePosition, deleteProfile, deleteTicker} = require('./pg.js');
 
 
 /*
@@ -45,12 +45,44 @@ describe('The user Creation and Deletion processes work correctly', () => {
 })
 
 
-
 describe('The Insert and Delete position processes work correctly', () => {
     it(`Inserting a new position works correctly`, async () => {
         await updatePosition("A User", "A Password", "Buy", "Ticker_Example", 10, 100, 100).then(result => expect(result).toBe(true));
         await deletePosition("A User", "A Password", "Ticker_Example").then(result => expect(result).toBe(true));;
     });
+})
 
+
+describe('The Position update processes work correctly', () => {
+    it(`The order fails when a sell order greater than the currently owned shares is placed.`, async () => {
+        await updatePosition("A User", "A Password", "Sell", "Ticker Not Owned", 10, 100, 100).then(result => expect(result).toBe(false));
+    });
+    it(`A buy order involving a pre-existing ticker succeeds.`, async () => {
+        await updatePosition("A User", "A Password", "Buy", "Existing_Ticker", 10, 100, 100);
+        await deletePosition("A User", "A Password", "Existing_Ticker").then(result => expect(result).toBe(true));
+    });
+    it(`A buy order involving a non-existing ticker succeeds.`, async () => {
+        await updatePosition("A User", "A Password", "Buy", "Non_Existing_Ticker", 10, 100, 100);
+        await deletePosition("A User", "A Password", "Non_Existing_Ticker").then(result => expect(result).toBe(true));
+        await deleteTicker("Non_Existing_Ticker");
+    });
+    it(`A buy order involving a pre-existing ticker and position succeeds.`, async () => {
+        await updatePosition("A User", "A Password", "Buy", "Non_Existing_Ticker", 1, 10, 10);
+        await updatePosition("A User", "A Password", "Buy", "Non_Existing_Ticker", 10, 100, 100);
+        const new_position = [{"shares_owned": "11", "total_cost": "110", "total_value": "110", "usernames": "A User"}];
+        retrievePortfolio("A User", "A Password").then(result => expect(result).toEqual(expect.arrayContaining(new_position)));
+        await deletePosition("A User", "A Password", "Non_Existing_Ticker").then(result => expect(result).toBe(true));
+        await deleteTicker("Non_Existing_Ticker");
+    });
+    it(`A sell order involving a pre-existing ticker and position succeeds.`, async () => {
+        await updatePosition("A User", "A Password", "Buy", "Non_Existing_Ticker", 1, 10, 10);
+        await updatePosition("A User", "A Password", "Buy", "Non_Existing_Ticker", 10, 100, 100);
+        await updatePosition("A User", "A Password", "Sell", "Non_Existing_Ticker", 1, 10, 10);
+        
+        const new_position = [{"shares_owned": "10", "total_cost": "100", "total_value": "100", "usernames": "A User"}];
+        retrievePortfolio("A User", "A Password").then(result => expect(result).toEqual(expect.arrayContaining(new_position)));
+        await deletePosition("A User", "A Password", "Non_Existing_Ticker").then(result => expect(result).toBe(true));
+        await deleteTicker("Non_Existing_Ticker");
+    });
 })
 

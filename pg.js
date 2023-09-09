@@ -178,7 +178,7 @@ const addStock = async (ticker) => {
 }
 
 // Inserts a new position into the user's db. 
-// Finished. Untested.
+// Finished. Tested.
 // Used in updatePosition()
 const insertNewPosition = async (username, password, ticker, shares, cost, value) => {
   //console.log("Insert position called");
@@ -204,46 +204,50 @@ const insertNewPosition = async (username, password, ticker, shares, cost, value
 
 
 // Handles the purchase of shares. 
-// Finished. Untested.
+// Finished. Tested.
 // Used in updatePosition()
 const buyShare = async (username, password, ticker, shares, cost, value) => {
-  const client = await connectPg();
-
   const ticker_id = await getTickerId(ticker);
   const user_id = await getUserId(username, password);
-  const current = await client.query("".concat(`SELECT  FROM "Position" WHERE user_id = `, user_id, ' AND stock_id = ', ticker_id));
+  const client = await connectPg();
+  const current = await client.query("".concat(`SELECT * FROM "Position" WHERE user_id = `, user_id, ' AND stock_id = ', ticker_id));
 
-  let currentShare = current.rows[0].shares_owned + shares;
-  let currentCost = current.rows[0].total_cost + cost;
-  let currentValue = current.rows[0].total_value + value;
+  let currentShare = parseFloat(current.rows[0].shares_owned) + shares;
+  let currentCost = parseFloat(current.rows[0].total_cost) + cost;
+  let currentValue = parseFloat(current.rows[0].total_value) + value;
 
   await client.query("".concat(
     `UPDATE "Position"
-    SET shares_owned = `, currentShare, `, total_cost = `, currentCost, ', total_value = ', currentValue,
-    `WHERE user_id = `, user_id, `AND stock_id = `, ticker_id))
+    SET shares_owned = '`, currentShare, `', total_cost = '`, currentCost, `', total_value = '`, currentValue, `'`,
+    `WHERE user_id = `, user_id, ` AND stock_id = `, ticker_id));
 
   await client.end();
 }
 
+/*
+  await client.query("".concat(
+    `UPDATE "Position"
+    SET shares_owned = `, currentShare, `, total_cost = `, currentCost, ', total_value = ', currentValue,
+    `WHERE user_id = `, user_id, ` AND stock_id = `, ticker_id));
+    */
 
 // Handles the sale of shares. 
 // Finished. Untested.
 // Used in updatePosition()
-const SellShare = async (username, password, ticker, shares, cost, value) => {
-  const client = await connectPg();
-
+const sellShare = async (username, password, ticker, shares, cost, value) => {
   const ticker_id = await getTickerId(ticker);
   const user_id = await getUserId(username, password);
-  const current = await client.query("".concat(`SELECT  FROM "Position" WHERE user_id = `, user_id, ' AND stock_id = ', ticker_id));
+  const client = await connectPg();
+  const current = await client.query("".concat(`SELECT * FROM "Position" WHERE user_id = `, user_id, ' AND stock_id = ', ticker_id));
 
-  let currentShare = current.rows[0].shares_owned - shares;
-  let currentCost = current.rows[0].total_cost - cost;
-  let currentValue = current.rows[0].total_value - value;
+  let currentShare = parseFloat(current.rows[0].shares_owned) - shares;
+  let currentCost = parseFloat(current.rows[0].total_cost) - cost;
+  let currentValue = parseFloat(current.rows[0].total_value) - value;
 
   await client.query("".concat(
     `UPDATE "Position"
-    SET shares_owned = `, currentShare, `, total_cost = `, currentCost, ', total_value = ', currentValue,
-    `WHERE user_id = `, user_id, `AND stock_id = `, ticker_id))
+    SET shares_owned = '`, currentShare, `', total_cost = '`, currentCost, `', total_value = '`, currentValue, `'`,
+    `WHERE user_id = `, user_id, ` AND stock_id = `, ticker_id));
 
   await client.end();
 }
@@ -278,7 +282,7 @@ const updatePosition = async (username, password, order, ticker, shares, cost, v
 
 
 // Deletes from the user's portfolio the position with the provided ticker. 
-// Finished. Untested.
+// Finished. Tested.
 // Exported.
 const deletePosition = async (username, password, ticker) => {
   const authenticated = await authenticateUser(username, password);
@@ -293,6 +297,17 @@ const deletePosition = async (username, password, ticker) => {
   } else {
     return false;
   }
+}
+
+// Deletes the ticker from the database. Used for testing. 
+const deleteTicker = async (ticker) => {
+    const deleteId = await getTickerId(ticker);
+    console.log(deleteId);
+    const client = await connectPg();
+
+    await client.query("".concat(`DELETE FROM "Stock" WHERE stock_id = `, deleteId));
+    await client.end();
+ //   return true;
 }
 
 
@@ -313,7 +328,7 @@ const deleteProfile = async (username, password) => {
 }
 
 //retrievePortfolio('A User', 'A Password').then(result => console.log(result));
-module.exports = {authenticateUser, retrievePortfolio, createUser, updatePosition, deletePosition, deleteProfile};
+module.exports = {authenticateUser, retrievePortfolio, createUser, updatePosition, deletePosition, deleteProfile, deleteTicker};
 
 
                   
